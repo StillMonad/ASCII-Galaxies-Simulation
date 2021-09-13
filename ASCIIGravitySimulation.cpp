@@ -4,6 +4,7 @@
 #include "ASCIIDrawer.h"
 #include "vec2.h"
 #include "Res.h"
+#include "keyEvents.h"
 #include <chrono>
 #include <vector>
 #include <math.h>
@@ -12,16 +13,60 @@
 #include <thread>
 
 //==============================================================================================//
-//===================================      CONST SECTION       =================================//
+//==========================               CONST SECTION               =========================//
 //==========================       FEEL FREE TO CHANGE SOMETHING       =========================//
 //==============================================================================================//
+// max frames per second 
+	int   fps    = 25;  
+// console width
+	int   width  = 600;  
+// console height
+	int   height = 300;   
+// x modifier for making circles circular
+	float xMod   = 0.8f;   
+// gravity const G
+	float G      = 0.5f;    
+// initial camera position
+	float px = width / 2;
+	float py = height / 2 * 2;
+// initial zoom
+	float zoom = 5.0;
+// initial time speed
+	float speed = 0.01;
+// initial brigtness (brightness is a color intensity multiplier)
+	float brightness = 0.02;
+// initial clear power (blur) - 1 clears eveverything, 0 clears nothing, something in between create motion blur
+	float clPower = 0.8f;
+// initial brightness power (pow(brightness, brPower)) can shift colors more to bright or dark
+	float brPower = 0.4f;
 
-int fps = 25;
-int width = 250;        // console width
-int height = 100;       // console height
-float xMod = 1.0f;      // x modifier for making circles circular
-float G = 0.5f;         // gravity const
-int gCount = 2;         // galaxies count
+//===========================    galaxies generation (randomized)     ==========================//
+// galaxies count
+	int gCount = 2;     
+// stars count in one galaxy
+	int gSizeMax = 150000;        
+	int gSizeMin = 50000; 
+// top right bottom left corners of possible positions 
+	vec2 gPosMax = {  10,  10 }; 
+	vec2 gPosMin = { -10, -10 }; 
+// mass of one galaxy center
+	int gMassMax = 500;           
+	int gMassMin = 100;     
+// velocity of galaxies
+	int gVelMax  = 3;       
+	int gVelMin  = -3;          
+// radius of a galaxy
+	int gRadMax = 500;
+	int gRadMin = 150;
+
+//==============================================================================================//
+//===================================   END OF CONST SECTION   =================================//
+//==============================================================================================//
+
+int getRandNum(int min, int max) {
+	int diff = max - min;
+	return (rand() % diff) + min;
+}
 
 struct ball {
 	float mass;
@@ -42,18 +87,16 @@ struct galaxyCenter {
 	int rotationSide;
 };
 
+float cTime;
+typedef std::chrono::high_resolution_clock Clock;
 std::vector <ball> objects;
 std::vector <galaxyCenter> galaxies;
-
-float sigmoid(float x) {
-	return 1 / (1 + exp(-x));
-}
 
 void genGalaxy(galaxyCenter g) {
 	float gRad = g.genRad;
 	int gStars = g.genSize;
 	for (int i = 0; i < gStars; ++i) {
-		float p = (1 - pow(sqrt(rand() % 100000 / 25000.0)/1, 0.2)) * gRad + 0.05f;
+		float p = (1 - pow(sqrt((float)getRandNum(0, 100000) / 25000.0f), 0.2)) * gRad + 0.05f;
 		//float p = (rand() % 1000 / 250.0) / 4 * gRad;
 		float angle = (rand() % 6284) / 1000.0;
 		vec2 pos = {sin(angle) * p, cos(angle) * p};
@@ -86,8 +129,6 @@ void genGalaxyTest(galaxyCenter g) {
 		objects.push_back(b);
 	}
 }
-
-float cTime;
 
 void threadPUpdate(float &time, int start, int count) {
 	for (int i = start; i < start + count; ++i) {
@@ -176,36 +217,25 @@ int main()
 {
 	ASCIIDrawer Drawer(width, height, xMod);
 	vec2 a;
-	typedef std::chrono::high_resolution_clock Clock;
 	auto pt = Clock::now();
 	srand(2); 
-	for (int i = 0; i < gCount; ++i) {                                                         //Generating galaxies
+	for (int i = 0; i < gCount; ++i) {                                                                              //Generating galaxies
 		int k = 0;
 		while (!(k == 1 || k == -1))
 			k = rand() % 4 - 2;
-		int m = (float)(rand() % 200) + 50;
-		galaxyCenter g = { {(float)(rand() % 60), (float)(rand() % 60)},                     //position
-						   {(float)(rand() % 40 / 5.0), (float)(rand() % 40 / 5.0)},         //velocity
-						   {0, 0},                                                             //acceleration
-						   m,                                                                  //center mass
-						   150000,//rand() % 250000 + 50000,                                            //stars count in one galaxy
-			               m/10,                                                               //radius
-		                   k };                                                                //rotation side
-		//genGalaxyTest(g);
+		int m = (float)(getRandNum(gMassMin, gMassMax));
+		galaxyCenter g = { {(float)getRandNum(gPosMin.x, gPosMax.x), (float)getRandNum(gPosMin.y, gPosMax.y)},      //position
+			               {(float)getRandNum(gVelMin * 100, gVelMax * 100)/100.0f, (float)getRandNum(gVelMin * 100, gVelMax * 100) / 100.0f},              //velocity
+						   {0, 0},                                                                                  //acceleration
+						   m,                                                                                       //center mass
+						   getRandNum(gSizeMin, gSizeMax),                                                          //stars count in one galaxy
+			               m / 10,                                                                                   //radius
+		                   k };                                                                                     //rotation side
 		genGalaxy(g);
 		galaxies.push_back(g);
 	}
-	float px = 276;// 800;
-	float py = 180;// 270;
-	float zoom = 5.0;
-	float speed = 0.01;
-	float brightness = 0.02;
-	float clPower = 0.8f;
-	float brPower = 0.4f;
-	float oneSym = 1.0 / Drawer.getColorScheme().size();
+	
 	float frD = 0;
-	float frD1 = frD;
-	float frD2 = frD1;
 	int currMenu = 0;
 	int frC = 0;
 	bool trig1 = false;
@@ -220,8 +250,8 @@ int main()
 	bool prMenu = false;
 	bool G = true;
 	bool prG = false;
-	float angTest = 0;
-	ShowCursor(FALSE);
+
+
 	while (1) {
 		if (!menu)
 			if (!trig1 and !trig2 and !trig3 and !trig4) {
@@ -236,59 +266,43 @@ int main()
 				continue;
 			}
 		else std::this_thread::sleep_for(std::chrono::milliseconds(30));
-
 		auto t = Clock::now();
 		float diff = (double)std::chrono::duration_cast<std::chrono::nanoseconds>(t - pt).count()/1000000.0;
 		pt = t;
 		frD += diff;
-		float frD1 = frD;
-		float frD2 = frD1;
 		cTime = diff*speed;
 		frC += 1;
-		if (GetAsyncKeyState((unsigned short)'C') & 0x8000) otherWork();
+		processAll(); // processing all keyboard inputs
+		if (keyC.keyDown) otherWork();
 		if (frD > 1000.0 / (float)fps) {
+			if (keyP.keyTrigDown) menu = !menu;
 			if (!menu) {
-				if (GetAsyncKeyState((unsigned short)'A') & 0x8000) px += 5.0 / zoom;
-				if (GetAsyncKeyState((unsigned short)'D') & 0x8000) px -= 5.0 / zoom;
-				if (GetAsyncKeyState((unsigned short)'W') & 0x8000) py += 5.0 / zoom;
-				if (GetAsyncKeyState((unsigned short)'S') & 0x8000) py -= 5.0 / zoom;
-				if (GetAsyncKeyState((unsigned short)'Q') & 0x8000) zoom *= 1.01;
-				if (GetAsyncKeyState((unsigned short)'E') & 0x8000) zoom /= 1.01;
-				if (GetAsyncKeyState((unsigned short)'Z') & 0x8000) speed += speed * 0.05;
-				if (GetAsyncKeyState((unsigned short)'X') & 0x8000) speed -= speed * 0.05;
-				if (GetAsyncKeyState((unsigned short)'R') & 0x8000) brightness += brightness * 0.05;
-				if (GetAsyncKeyState((unsigned short)'F') & 0x8000) brightness -= brightness * 0.05;
-				if (GetAsyncKeyState((unsigned short)'T') & 0x8000) clPower -= 0.005;
-				if (GetAsyncKeyState((unsigned short)'G') & 0x8000) clPower += 0.005;
-				if (GetAsyncKeyState((unsigned short)'1') & 0x8000) brPower -= 0.005;
-				if (GetAsyncKeyState((unsigned short)'2') & 0x8000) brPower += 0.005;
-				if (GetAsyncKeyState((unsigned short)'P') & 0x8000) {
-					prMenu = true;
-				}
-				else if (prMenu) {
-					menu = !menu;
-					prMenu = false;
-				}
-				if (GetAsyncKeyState((unsigned short)'H') & 0x8000) {
-					prG = true;
-				}
-				else if (prG) {
-					G = !G;
-					prG = false;
-				}
+				if (keyA.keyDown) px += 5.0 / zoom;
+				if (keyD.keyDown) px -= 5.0 / zoom;
+				if (keyW.keyDown) py += 5.0 / zoom;
+				if (keyS.keyDown) py -= 5.0 / zoom;
+				if (keyQ.keyDown) zoom *= 1.01;
+				if (keyE.keyDown) zoom /= 1.01;
+				if (keyZ.keyDown) speed += speed * 0.05;
+				if (keyX.keyDown) speed -= speed * 0.05;
+				if (keyR.keyDown) brightness += brightness * 0.05;
+				if (keyF.keyDown) brightness -= brightness * 0.05;
+				if (keyT.keyDown) clPower -= 0.005;
+				if (keyG.keyDown) clPower += 0.005;
+				if (key1.keyDown) brPower -= 0.005;
+				if (key2.keyDown) brPower += 0.005;
+				if (keyH.keyTrigDown) G = !G;
 			}
 			else {
-				if (GetAsyncKeyState((unsigned short)'W') & 0x8000) py += 5.0 / zoom;
-				if (GetAsyncKeyState((unsigned short)'S') & 0x8000) py -= 5.0 / zoom;
+				if (keyW.keyTrigUp) --currMenu;
+				if (keyS.keyTrigUp) ++currMenu;
+				currMenu = clip(currMenu, 0, 2);
 			}
+			
 			//Drawer.clear();
 			clip(clPower, 0.0001f, 1.0f);
 			clip(brPower, 0.0001f, 1.0f);
 			Drawer.customClear(clPower);
-			//vec2 curs = Drawer.getCursorPos();
-			//Drawer.drCircle(curs.x, curs.y, 3, 1, 0, 0.3);
-			//float xc = curs.x;
-			//float yc = curs.y;
 			auto it1 = objects.begin();
 			auto it2 = galaxies.begin();
 			if (!menu) {
@@ -315,8 +329,8 @@ int main()
 					++it2;
 				}
 				
-				Drawer.drString("BLURRINESS", 10, 2, 1, 1);
-				Drawer.drNumber(1 - clPower, 10, 16, 1, 1);
+				Drawer.drString("BLUR", 10, 2, 1, 1);
+				Drawer.drNumber(clPower, 10, 16, 1, 1);
 				Drawer.drString("ZOOM", 10, 34, 1, 1);
 				Drawer.drNumber(zoom, 10, 48, 1, 1);
 				Drawer.drString("TIME SPEED", 10, 66, 1, 1);
@@ -327,7 +341,7 @@ int main()
 				Drawer.drString("TOTAL PARTICLE COUNT", 150, 2, 1, 1);
 				Drawer.drNumber(objects.size(), 300, 2, 1, 1);
 				Drawer.drString("FPS ", 150, 16, 1, 1);
-				Drawer.drNumber((float)(1000.0/((frD + frD1 + frD2)/3.0)), 180, 16, 1, 1);
+				Drawer.drNumber((float)(1000.0/(frD)), 180, 16, 1, 1);
 				Drawer.drString("EVALUATED IN ONE FRAME", 280, 16, 1, 1);
 				Drawer.drNumber(frC, 450, 16, 1, 1);
 				Drawer.drString("BRIGHTNESS POWER", 10, 130, 1, 1);
