@@ -110,44 +110,6 @@ void genGalaxy(galaxyCenter g) {
 	}
 }
 
-void genGalaxyTest(galaxyCenter g) {
-	float gRad = g.genRad;
-	int gStars = g.genSize;
-	int count = rand() % 2 + 1;
-	for (int i = 0; i < gStars; ++i) {
-		float p = (1 - pow(sqrt(rand() % 4000 / 1000.0) / 2, 0.2)) * gRad/2 + 0.2f;
-		//float p = (rand() % 1000 / 250.0) / 4 * gRad;
-		float angle1 = (rand() % count) * (M_PI*2) / count;
-		float angle2 = (rand() % 1000) / 1000.0 * (M_PI * 2 / count) / (p * p);
-		vec2 pos = { sin(angle1 + angle2) * p, cos(angle1 + angle2) * p };
-		pos += g.pos;
-		float vmag = sqrt(G * g.mass / p);
-		vec2 vel = { sin(angle2 + angle1 + (float)M_PI * g.rotationSide / 2.0f) * vmag, cos(angle2 + angle1 + (float)M_PI * g.rotationSide / 2.0f) * vmag };
-		//vel *= (1.0f + (rand() % 1000 / 10000 - 0.05));
-		vel = g.vel + vel;
-		ball b = { 1, 0.1, pos, vel, 0, {0,0} };
-		objects.push_back(b);
-	}
-}
-
-void threadPUpdate(float &time, int start, int count) {
-	for (int i = start; i < start + count; ++i) {
-		objects[i].acc = vec2(0, 0);
-		if (objects[i].fixed) continue;
-		for (int j = 0; j < galaxies.size(); ++j) {
-			if (i == j) continue;
-			vec2 dir = (galaxies[j].pos - objects[i].pos);
-			if (dir.magnitude() < 0.1f) continue;
-			dir.normalize();
-			objects[i].acc += dir * G * galaxies[j].mass / pow(((objects[i].pos - galaxies[j].pos)).magnitude(), 2);
-		}
-	}
-	for (int i = start; i < start + count; ++i) {
-		objects[i].vel += 0.001 * time * objects[i].acc;
-		objects[i].pos += 0.001 * time * (objects[i].vel);
-	}
-
-}
 
 void threadPUpdateFull(float& time, int start, int count, int startg, int countg) {
 	for (int i = start; i < start + count; ++i) {
@@ -186,9 +148,7 @@ void threadPoolUpdate(bool &trig, int threadCount, int threadNum) {
 	int s = objects.size() / threadCount;
 	int g = galaxies.size() / threadCount;
 	while (1) {
-		//if (cTime == 0.0f) std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		if (trig) {
-			//threadPUpdate(cTime, s * threadNum, s);
 			threadPUpdateFull(cTime, s * threadNum, s, g * threadNum, g);
 			trig = false;
 			std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -225,11 +185,11 @@ int main()
 			k = rand() % 4 - 2;
 		int m = (float)(getRandNum(gMassMin, gMassMax));
 		galaxyCenter g = { {(float)getRandNum(gPosMin.x, gPosMax.x), (float)getRandNum(gPosMin.y, gPosMax.y)},      //position
-			               {(float)getRandNum(gVelMin * 100, gVelMax * 100)/100.0f, (float)getRandNum(gVelMin * 100, gVelMax * 100) / 100.0f},              //velocity
+			               {(float)getRandNum(gVelMin * 100, gVelMax * 100)/100.0f, (float)getRandNum(gVelMin * 100, gVelMax * 100) / 100.0f},  //velocity
 						   {0, 0},                                                                                  //acceleration
 						   m,                                                                                       //center mass
 						   getRandNum(gSizeMin, gSizeMax),                                                          //stars count in one galaxy
-			               m / 10,                                                                                   //radius
+			               m / 10,                                                                                  //radius
 		                   k };                                                                                     //rotation side
 		genGalaxy(g);
 		galaxies.push_back(g);
@@ -309,11 +269,10 @@ int main()
 			if (!menu) {
 				while (it1 != objects.end())
 				{
-					//float fancyBrightness = (rand() % 100 / 100.0 * oneSym - oneSym / 2.0) + brightness * pow(zoom, 0.75);
 					float fancyBrightness = brightness* pow(zoom, 0.75); // now all smoothening magic is happening in Drawer.getColor(float col)
-					Drawer.drPointOpaqueNum(((it1->pos.x * Drawer.xMod - width / 2) + px) * zoom,        // x (on some resolutions required multiply x by some coeff to make circles circle)
-						                   ((it1->pos.y / 2 - height / 2) + py / 2) * zoom,    // y
-						fancyBrightness);// clip(fancyBrightness * pow(clPower, 0.6), 0.0, 1.0));  // brightness (some magic to make it smooth and zoom-dependent)
+					Drawer.drPointOpaqueNum(((it1->pos.x * Drawer.xMod - width / 2) + px) * zoom,
+						                   ((it1->pos.y / 2 - height / 2) + py / 2) * zoom,    
+						                   fancyBrightness);
 					++it1;
 				}
 
@@ -366,7 +325,6 @@ int main()
 			//Drawer.checkPaletteNum();
 			//Drawer.rebright(brPower);
 			Drawer.showNum(); 
-			//std::this_thread::sleep_for(std::chrono::milliseconds(3000000));
 			frD = 0;
 			frC = 0;
 		}
