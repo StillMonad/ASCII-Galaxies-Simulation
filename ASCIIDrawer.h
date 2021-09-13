@@ -19,9 +19,12 @@ T clip(const T& n, const T& lower, const T& upper) {
 class ASCIIDrawer
 {
 public:
-	ASCIIDrawer(int w, int h) {
+	float xMod = 0.7;
+
+	ASCIIDrawer(int w, int h, float xMod) {
 		this->w = w;
 		this->h = h;
+		this->xMod = xMod;
 		this->screen = (wchar_t*)malloc(this->w * this->h * sizeof(wchar_t));
 		this->screenNum = (float*)malloc(this->w * this->h * sizeof(float));
 		this->zBuff = (float*)malloc(this->w * this->h * sizeof(float));
@@ -113,7 +116,8 @@ public:
 			int oneL = (int)str[i] - 65;
 			for (int x = 0; x < 6 * size; ++x) {
 				for (int y = 0; y < 5 * size; ++y) {
-					if (letters[oneL][(int)(y/size) * 6 + (int)(x/size)] != ' ') screenNum[convertCoords(x + px + ind * 7 * size, y + py)] = color;
+					if (letters[oneL][(int)(y/size) * 6 + (int)(x/size)] != ' ') 
+						screenNum[convertCoords(clip(x + px + ind * 7 * size, 0.0f, (float)w-1.0f), clip(y + (float)py, 0.0f, (float)h-1.0f))] = color;
 				}
 			}
 			++ind;
@@ -191,8 +195,8 @@ public:
 	void drCross(float px, float py, float size, float color) {
 		//drLineOpaqueNum(px - size, py, px + size, py, color);
 		//drLineOpaqueNum(px, py - size/3.0, px, py + size/3.0, color);
-		drLineOpaqueNum(px - size * 0.7, py - size/2.0, px + size * 0.7, py + size/2.0, color, 1);
-		drLineOpaqueNum(px - size * 0.7, py + size/2.0, px + size * 0.7, py - size/2.0, color, 1);
+		drLineOpaqueNum(px - size * xMod, py - size/2.0, px + size * xMod, py + size/2.0, color, 1);
+		drLineOpaqueNum(px - size * xMod, py + size/2.0, px + size * xMod, py - size/2.0, color, 1);
 	}
 
 	void drArrow(float px, float py, vec2 dir, float color) {

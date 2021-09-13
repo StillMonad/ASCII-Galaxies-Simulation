@@ -11,12 +11,17 @@
 #include <algorithm>
 #include <thread>
 
-typedef std::chrono::high_resolution_clock Clock;
+//==============================================================================================//
+//===================================      CONST SECTION       =================================//
+//==========================       FEEL FREE TO CHANGE SOMETHING       =========================//
+//==============================================================================================//
+
 int fps = 25;
-int width = 600;
-int height = 220;
-float G = 0.5f;
-int gCount = 3;
+int width = 250;        // console width
+int height = 100;       // console height
+float xMod = 1.0f;      // x modifier for making circles circular
+float G = 0.5f;         // gravity const
+int gCount = 2;         // galaxies count
 
 struct ball {
 	float mass;
@@ -169,8 +174,9 @@ void otherWork() {
 
 int main()
 {
+	ASCIIDrawer Drawer(width, height, xMod);
 	vec2 a;
-	ASCIIDrawer Drawer(width, height);
+	typedef std::chrono::high_resolution_clock Clock;
 	auto pt = Clock::now();
 	srand(2); 
 	for (int i = 0; i < gCount; ++i) {                                                         //Generating galaxies
@@ -182,15 +188,15 @@ int main()
 						   {(float)(rand() % 40 / 5.0), (float)(rand() % 40 / 5.0)},         //velocity
 						   {0, 0},                                                             //acceleration
 						   m,                                                                  //center mass
-						   50000,//rand() % 250000 + 50000,                                            //stars count in one galaxy
+						   150000,//rand() % 250000 + 50000,                                            //stars count in one galaxy
 			               m/10,                                                               //radius
 		                   k };                                                                //rotation side
 		//genGalaxyTest(g);
 		genGalaxy(g);
 		galaxies.push_back(g);
 	}
-	float px = 303;// 800;
-	float py = 265;// 270;
+	float px = 276;// 800;
+	float py = 180;// 270;
 	float zoom = 5.0;
 	float speed = 0.01;
 	float brightness = 0.02;
@@ -290,7 +296,7 @@ int main()
 				{
 					//float fancyBrightness = (rand() % 100 / 100.0 * oneSym - oneSym / 2.0) + brightness * pow(zoom, 0.75);
 					float fancyBrightness = brightness* pow(zoom, 0.75); // now all smoothening magic is happening in Drawer.getColor(float col)
-					Drawer.drPointOpaqueNum(((it1->pos.x * 0.8 - width / 2) + px) * zoom,        // x (on some resolutions required multiply x by some coeff to make circles circle)
+					Drawer.drPointOpaqueNum(((it1->pos.x * Drawer.xMod - width / 2) + px) * zoom,        // x (on some resolutions required multiply x by some coeff to make circles circle)
 						                   ((it1->pos.y / 2 - height / 2) + py / 2) * zoom,    // y
 						fancyBrightness);// clip(fancyBrightness * pow(clPower, 0.6), 0.0, 1.0));  // brightness (some magic to make it smooth and zoom-dependent)
 					++it1;
@@ -301,10 +307,10 @@ int main()
 				if (G) while (it2 != galaxies.end())
 				{
 					float fancyBrightness = brightness * pow(zoom, 0.75);
-					Drawer.drCross(((it2->pos.x * 0.8 - width / 2) + px) * zoom,
+					Drawer.drCross(((it2->pos.x * Drawer.xMod - width / 2) + px) * zoom,
 						((it2->pos.y / 2 - height / 2) + py / 2) * zoom,
 						8, 0.7);
-					Drawer.drArrow(((it2->pos.x * 0.8 - width / 2) + px) * zoom,
+					Drawer.drArrow(((it2->pos.x * Drawer.xMod - width / 2) + px) * zoom,
 						((it2->pos.y / 2 - height / 2) + py / 2) * zoom, it2->vel * zoom * 2, 1);
 					++it2;
 				}
