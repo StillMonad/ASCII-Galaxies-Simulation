@@ -183,7 +183,6 @@ public:
 		float i = sx;
 		float j = sy;
 		int p = 0;
-		//for (float i = sx, float j = sy; smartCmp(i, sx, ex); i += dX / len, j += dY / len) {
 		while (smartCmp(i, sx, ex) || smartCmp(j, sy, ey)) {
 			if (p % style == 0) drPointOpaqueNum(i, j, color);
 			i += dX / len;
@@ -193,8 +192,6 @@ public:
 	}
 
 	void drCross(float px, float py, float size, float color) {
-		//drLineOpaqueNum(px - size, py, px + size, py, color);
-		//drLineOpaqueNum(px, py - size/3.0, px, py + size/3.0, color);
 		drLineOpaqueNum(px - size * xMod, py - size/2.0, px + size * xMod, py + size/2.0, color, 1);
 		drLineOpaqueNum(px - size * xMod, py + size/2.0, px + size * xMod, py - size/2.0, color, 1);
 	}
@@ -211,7 +208,6 @@ public:
 		float angX = dc.getAngToX();
 		drLineOpaqueNum(ax, ay, ax - cos(ang1 - angX) * dc.magnitude(), ay - sin(ang1 - angX) * dc.magnitude(), color, 1);
 		drLineOpaqueNum(ax, ay, ax + cos(ang2 - angX) * dc.magnitude(), ay + sin(ang2 - angX) * dc.magnitude(), color, 1);
-		//drLineOpaqueNum(ax, ay, ax + dc.x * cos(-ang) * 0.7, ay + dc.y * sin(-ang) / 2, color, 1);
 	}
 
 	void drCircle(int px, int py, int rad, float color, float depth, float fill) {
@@ -269,8 +265,6 @@ public:
 	}
 
 	int getColor(float col) {
-		//return (int)(((float)color_scheme.size() - 1) * col + (rand() % 1000 / 125.0  - 4) * oneSym);
-		//return (int)(((float)color_scheme.size() - 1.0) * col);
 		if (col == 0) return 0;
 		if (col == 1) return color_scheme.size() - 1;
 		return (int)clip((((float)color_scheme.size() - 1) * col + (rand() % 4000 / 125.0 - 8) * oneSym), 0.0, (double)color_scheme.size() - 1);
@@ -278,8 +272,6 @@ public:
 
 	void showNum() {
 		for (int i = 0; i < this->w * this->h; ++i) { 
-			//if (screenNum[i] == 0) screen[i] = ' ';
-			//else screen[i] = color_scheme[std::max(getColor(screenNum[i]), 0)]; 
 			screen[i] = color_scheme[std::max(getColor(screenNum[i]), 0)];
 		}
 		WriteConsoleOutputCharacter(hConsole, screen, this->w * this->h, { 0,0 }, &dwBytesWritten);
@@ -318,6 +310,9 @@ public:
 
 private:
 	int w, h;
+	 //=================================//
+	// Here u can choose color schemes //
+   //=================================//
 	//std::string color_scheme = " .,:-~=<+xvzXY#&8%B@$";
 	//std::string color_scheme = ".=*+#%";  // --- good for 3pt
 	std::string color_scheme = " `.;!=*&#W";  
