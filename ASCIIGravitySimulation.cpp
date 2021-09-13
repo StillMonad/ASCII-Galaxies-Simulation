@@ -236,7 +236,8 @@ int main()
 	}
 	
 	float frD = 0;
-	int currMenu = 0;
+	int currMenuPos = 0;
+	int menuLen = 3;
 	int frC = 0;
 	bool trig1 = false;
 	bool trig2 = false;
@@ -294,9 +295,9 @@ int main()
 				if (keyH.keyTrigDown) G = !G;
 			}
 			else {
-				if (keyW.keyTrigUp) --currMenu;
-				if (keyS.keyTrigUp) ++currMenu;
-				currMenu = clip(currMenu, 0, 2);
+				if (keyW.keyTrigUp) --currMenuPos;
+				if (keyS.keyTrigUp) ++currMenuPos;
+				currMenuPos = clip(currMenuPos, 0, menuLen - 1);
 			}
 			
 			//Drawer.clear();
@@ -360,7 +361,7 @@ int main()
 				Drawer.drString("RESUME", width / 2 - 75, 145, 2, 1);
 				Drawer.drSprite(menuPos, width / 2 - 100, 160, 20, 5);
 				Drawer.drString("EXIT", width / 2 - 75, 175, 2, 1);
-				Drawer.drSprite(menuPosSel, width / 2 - 100, 100 + 30 * currMenu, 20, 5);
+				Drawer.drSprite(menuPosSel, width / 2 - 100, 100 + 30 * currMenuPos, 20, 5);
 			}
 			//Drawer.checkPaletteNum();
 			//Drawer.rebright(brPower);
