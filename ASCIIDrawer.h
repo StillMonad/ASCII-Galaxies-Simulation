@@ -21,7 +21,7 @@ class ASCIIDrawer
 public:
 	float xMod = 0.7;
 
-	ASCIIDrawer(int w, int h, float xMod) {
+	ASCIIDrawer(const int& w, const int& h, const float& xMod) {
 		this->w = w;
 		this->h = h;
 		this->xMod = xMod;
@@ -56,23 +56,23 @@ public:
 		}
 	}
 
-	void customClear(float str)
+	void customClear(const float& strength)
 	{
 		for (int i = 0; i < this->w * this->h; i++) {
 			if (screenNum[i] == 0.0f) continue;
-			screenNum[i] = clip(screenNum[i] - str, 0.0f, 1.0f);
+			screenNum[i] = clip(screenNum[i] - strength, 0.0f, 1.0f);
 		}
 	}
 
-	int convertCoords(int x, int y) {   // origin is in the top-left corner
+	int convertCoords(const int& x, const int& y) {   // origin is in the top-left corner
 		return y * this->w + x;
 	}
 
-	int convertCoordsGL(float x, float y) { // origin is in the center
+	int convertCoordsGL(const float& x, const float& y) { // origin is in the center
 		return (round(y) + this->h / 2 - 1) * this->w + x + this->w / 2 - 1;
 	}
 
-	void drNumber(float num, int px, int py, float size, float color) {
+	void drNumber(const float& num, const int& px, const int& py, const float& size, const float& color) {
 		std::string numS = std::to_string(num);
 		int ind = 0;
 		for (int i = 0; i < numS.size(); ++i) {
@@ -106,7 +106,7 @@ public:
 		}
 	}
 
-	void drString(std::string str, int px, int py, float size, float color) {
+	void drString(const std::string& str, const int& px, const int& py, const float& size, const float& color) {
 		int ind = 0;
 		for (int i = 0; i < str.size(); ++i) {
 			if (str[i] == ' ') {
@@ -124,7 +124,7 @@ public:
 		}
 	}
 
-	void drSprite(std::vector <std::vector <float>> vec, int px, int py, float sizeX, float sizeY) {
+	void drSprite(const std::vector <std::vector <float>>& vec, const int& px, const int& py, const float& sizeX, const float& sizeY) {
 		int ind = 0;
 			for (int x = 0; x < vec[0].size() * sizeX; ++x) {
 				for (int y = 0; y < vec.size() * sizeY; ++y) {
@@ -134,7 +134,7 @@ public:
 			++ind;
 	}
 
-	void drPoint(int px, int py, float color, float depth) {
+	void drPoint(const int& px, const int& py, const float& color, const float& depth) {
 		int pos = convertCoords(px, py);
 		if (px < 0 || px >= this->w) return;
 		if (py < 0 || py >= this->h) return;
@@ -142,7 +142,7 @@ public:
 		this->zBuff[pos] = depth;
 	}
 
-	void drPointOpaque(float px, float py, float color, float depth) {
+	void drPointOpaque(const float& px, const float& py, const float& color, const float& depth) {
 		int pos = convertCoordsGL(px, py);
 		if (px < -this->w / 2 || px >= this->w / 2) return;
 		if (py < -this->h / 2 || py >= this->h / 2) return;
@@ -157,7 +157,7 @@ public:
 		this->zBuff[pos] = depth;
 	}
 
-	void drPointOpaqueNum(float px, float py, float color) {
+	void drPointOpaqueNum(const float& px, const float& py, const float& color) {
 		int pos = convertCoordsGL(px, py);
 		if (px < -this->w / 2 || px >= this->w / 2) return;
 		if (py < -this->h / 2 || py >= this->h / 2) return;
@@ -167,12 +167,12 @@ public:
 		this->screenNum[pos] = this->screenNum[pos] + color;
 	}
 
-	bool smartCmp(float a, float b, float c) {
+	bool smartCmp(const float& a, const float& b, const float& c) {
 		if (b <= c) return a <= c;
 		else return a > c;
 	}
 
-	void drLineOpaqueNum(float sx, float sy, float ex, float ey, float color, int style) {
+	void drLineOpaqueNum(const float& sx, const float& sy, const float& ex, const float& ey, const float& color, const int& style) {
 		float dX = ex - sx;
 		dX = dX == 0 ? 0.1 : dX;
 		float dY = ey - sy;
@@ -191,14 +191,14 @@ public:
 		}
 	}
 
-	void drCross(float px, float py, float size, float color) {
+	void drCross(const float& px, const float& py, const float& size, const float& color) {
 		drLineOpaqueNum(px - size * xMod, py - size/2.0, px + size * xMod, py + size/2.0, color, 1);
 		drLineOpaqueNum(px - size * xMod, py + size/2.0, px + size * xMod, py - size/2.0, color, 1);
 	}
 
-	void drArrow(float px, float py, vec2 dir, float color) {
+	void drArrow(const float& px, const float& py, vec2 dir, const float& color) {
 		drLineOpaqueNum(px, py, px + dir.x * 0.7, py + dir.y / 2.0, color, 2);
-		vec2 dc = - dir;
+		vec2 dc = -dir;
 		dc.normalize();
 		float ax = px + dir.x * 0.7;
 		float ay = py + dir.y / 2.0;
@@ -264,10 +264,12 @@ public:
 		WriteConsoleOutputCharacter(hConsole, screen, this->w * this->h, { 0,0 }, &dwBytesWritten);
 	}
 
-	int getColor(float col) {
+	int getColor(const float& col) {
 		if (col == 0) return 0;
 		if (col == 1) return color_scheme.size() - 1;
-		return (int)clip((((float)color_scheme.size() - 1) * col + (rand() % 4000 / 125.0 - 8) * oneSym), 0.0, (double)color_scheme.size() - 1);
+		return (int)clip((((float)color_scheme.size() - 1) * col + (rand() % 1000 / 5000.0 - 0.1)), 0.0, (double)color_scheme.size() - 1);
+		//return (int)clip((((float)color_scheme.size() - 1) * col + (rand() % 4000 / 250.0 - 4) * oneSym), 0.0, (double)color_scheme.size() - 1);
+		//return (int)clip(((color_scheme.size() - 1) * (double)col), 0.0, (double)color_scheme.size() - 1);
 	}
 
 	void showNum() {
@@ -286,7 +288,6 @@ public:
 	std::string getColorScheme() { return color_scheme; }
 
 	void checkPalette() {
-		float oneSym = 1.0 / this->color_scheme.size();
 		int linesC = 5;// (int)(oneSym * this->h);
 		int sym = 0;
 		for (int i = 0; i < color_scheme.size(); ++i) {
@@ -299,11 +300,9 @@ public:
 	}
 
 	void checkPaletteNum() {
-		float oneSym = 1.0 / this->color_scheme.size();
-		int sym = 0;
 		for (int i = 0; i < this->w; ++i) {
 			for (int j = 0; j < this->h; ++j) {
-				this->screenNum[convertCoords(i, j)] = ((float)i / (float)this->w);
+				this->screenNum[convertCoords(i, j)] = ((float)i / ((float)this->w - this->w*oneSym));
 			}
 		}
 	}
@@ -314,21 +313,22 @@ private:
 	// Here u can choose color schemes //
    //=================================//
 	//std::string color_scheme = " .,:-~=<+xvzXY#&8%B@$";
-	//std::string color_scheme = ".=*+#%";  // --- good for 3pt
-	std::string color_scheme = " `.;!=*&#W";  
+	//std::string color_scheme = ".=#*+%";  // --- good for 3pt
+	std::string color_scheme = ".`*xG=&";  // --- good for 1pt
+	//std::string color_scheme = " `.;!=*&#W";  // -- good for 2pt
 	//std::string color_scheme = ".,:irs?9B&#@$";
 	//std::string color_scheme = " .,ilwW";  // --- good for 3pt
 	//std::string color_scheme = ".;iwW";  //
 	//std::string color_scheme = "'.\'^,:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
 	//std::string color_scheme = ".,:irs?9B&@";  
 	//std::string color_scheme = "`'\":?s}#%W@"; // --- best palette for 5pt 
-	float oneSym = 1.0 / (float)color_scheme.size();
 	wchar_t* screen;
 	float* screenNum;
 	float* zBuff;
 	DWORD dwBytesWritten = 0;
 	HANDLE hConsole;
 	float prec = 0.8;
+	float oneSym = 1.0 / this->color_scheme.size();
 	POINT p;
 	CONSOLE_SCREEN_BUFFER_INFO cbsi;
 };
