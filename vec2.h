@@ -108,7 +108,7 @@ struct vec2
 		(*this) /= mag;
 	}
 
-	float getAng(vec2 a) {
+	float getAng(const vec2& a) {
 		float c = *this * a;
 		return acos(c/(this->magnitude() * a.magnitude()));
 	}
@@ -117,6 +117,13 @@ struct vec2
 		float ang = this->getAng({ 1, 0 });
 		if (this->y < 0) return ang;
 		else return M_PI + (M_PI - ang);
+	}
+
+	vec2 rotate(const float& rad) {
+		float mag = this->magnitude();
+		float ang = getAngToX() + rad + M_PI/2;
+		vec2 ret = vec2(sin(ang), cos(ang)) * mag;
+		return ret;
 	}
 };
 

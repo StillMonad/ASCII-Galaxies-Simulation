@@ -17,35 +17,37 @@
 //==========================       FEEL FREE TO CHANGE SOMETHING       =========================//
 //==============================================================================================//
 // max frames per second 
-	int   fps    = 25;  
+	const int   fps    = 25;
 // console width
-	int   width  = 600;  
+	const int   width  = 800;  
 // console height
-	int   height = 300;   
+	const int   height = 300;   
 // x modifier for making circles circular
-	float xMod   = 0.8f;   
+	const float xMod   = 0.8f;   
 // gravity const G
-	float G      = 0.5f;    
+	const float G      = 0.5f;
 // initial camera position
 	float px = width / 2;
 	float py = height / 2 * 2;
 // initial zoom
-	float zoom = 5.0;
+	float zoom = 50.0;
 // initial time speed
 	float speed = 0.01;
 // initial brigtness (brightness is a color intensity multiplier)
 	float brightness = 0.02;
 // initial clear power (blur) - 1 clears eveverything, 0 clears nothing, something in between create motion blur
-	float clPower = 0.8f;
+	float clPower = 10.0f;
 // initial brightness power (pow(brightness, brPower)) can shift colors more to bright or dark
 	float brPower = 0.4f;
 
 //===========================    galaxies generation (randomized)     ==========================//
+//rand() generation seed 
+	int seed = 3;
 // galaxies count
 	int gCount = 2;     
 // stars count in one galaxy
 	int gSizeMax = 150000;        
-	int gSizeMin = 50000; 
+	int gSizeMin = 100000; 
 // top right bottom left corners of possible positions 
 	vec2 gPosMax = {  10,  10 }; 
 	vec2 gPosMin = { -10, -10 }; 
@@ -63,8 +65,9 @@
 //===================================   END OF CONST SECTION   =================================//
 //==============================================================================================//
 
-int getRandNum(int min, int max) {
+int getRandNum(const int& min, const int& max) {
 	int diff = max - min;
+	if (diff == 0) return 0;
 	return (rand() % diff) + min;
 }
 
@@ -92,7 +95,7 @@ typedef std::chrono::high_resolution_clock Clock;
 std::vector <ball> objects;
 std::vector <galaxyCenter> galaxies;
 
-void genGalaxy(galaxyCenter g) {
+void genGalaxy(galaxyCenter& g) {
 	float gRad = g.genRad;
 	int gStars = g.genSize;
 	for (int i = 0; i < gStars; ++i) {
@@ -111,7 +114,7 @@ void genGalaxy(galaxyCenter g) {
 }
 
 
-void threadPUpdateFull(float& time, int start, int count, int startg, int countg) {
+void threadPUpdateFull(float& time, const int& start, const int& count, const int& startg, const int& countg) {
 	for (int i = start; i < start + count; ++i) {
 		objects[i].acc = vec2(0, 0);
 		if (objects[i].fixed) continue;
@@ -144,32 +147,13 @@ void threadPUpdateFull(float& time, int start, int count, int startg, int countg
 	}
 }
 
-void threadPoolUpdate(bool &trig, int threadCount, int threadNum) {
-	int s = objects.size() / threadCount;
-	int g = galaxies.size() / threadCount;
+void threadPoolUpdateStatic(bool& trig, const int& oBegin, const int& oEnd, const int& gBegin, const int& gEnd) {
 	while (1) {
 		if (trig) {
-			threadPUpdateFull(cTime, s * threadNum, s, g * threadNum, g);
+			threadPUpdateFull(cTime, oBegin, oEnd - oBegin, gBegin, gEnd - gBegin);
 			trig = false;
-			std::this_thread::sleep_for(std::chrono::milliseconds(5));
+			std::this_thread::sleep_for(std::chrono::milliseconds(15));
 		}
-	}
-}
-
-void otherWork() {
-	for (int i = 0; i < galaxies.size(); ++i) {
-		galaxies[i].acc = vec2(0, 0);
-		for (int j = 0; j < galaxies.size(); ++j) {
-			if (i == j) continue;
-			vec2 dir = (galaxies[j].pos - galaxies[i].pos);
-			dir.normalize();
-			galaxies[i].acc += dir * G * galaxies[j].mass / pow(((galaxies[i].pos - galaxies[j].pos)).magnitude(), 2);
-		}
-	}
-
-	for (int i = 0; i < galaxies.size(); ++i) {
-		galaxies[i].vel += 0.001 * cTime * galaxies[i].acc;
-		galaxies[i].pos += 0.001 * cTime * (galaxies[i].vel);
 	}
 }
 
@@ -178,7 +162,7 @@ int main()
 	ASCIIDrawer Drawer(width, height, xMod);
 	vec2 a;
 	auto pt = Clock::now();
-	srand(2); 
+	srand(seed); 
 	for (int i = 0; i < gCount; ++i) {                                                                              //Generating galaxies
 		int k = 0;
 		while (!(k == 1 || k == -1))
@@ -203,24 +187,23 @@ int main()
 	bool trig2 = false;
 	bool trig3 = false;
 	bool trig4 = false;
-	std::thread thr1(threadPoolUpdate, std::ref(trig1), 4, 0);
-	std::thread thr2(threadPoolUpdate, std::ref(trig2), 4, 1);
-	std::thread thr3(threadPoolUpdate, std::ref(trig3), 4, 2);
-	std::thread thr4(threadPoolUpdate, std::ref(trig4), 4, 3);
+	std::thread thr1(threadPoolUpdateStatic, std::ref(trig1), 0, objects.size() / 2, 0, galaxies.size());
+	std::thread thr2(threadPoolUpdateStatic, std::ref(trig2), objects.size() / 2, objects.size(), 0, 0);
+	//std::thread thr1(threadPoolUpdate, std::ref(trig1), 2, 0);
+	//std::thread thr2(threadPoolUpdate, std::ref(trig2), 2, 1);
+	//std::thread thr3(threadPoolUpdate, std::ref(trig3), 4, 2);
+	//std::thread thr4(threadPoolUpdate, std::ref(trig4), 4, 3);
 	bool menu = false;
-	bool prMenu = false;
 	bool G = true;
-	bool prG = false;
-
 
 	while (1) {
 		if (!menu)
 			if (!trig1 and !trig2 and !trig3 and !trig4) {
-				otherWork();
+				//otherWork();
 				trig1 = true;
 				trig2 = true;
-				trig3 = true;
-				trig4 = true;
+				//trig3 = true;
+				//trig4 = true;
 			}
 			else { 
 				std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -234,7 +217,7 @@ int main()
 		cTime = diff*speed;
 		frC += 1;
 		processAll(); // processing all keyboard inputs
-		if (keyC.keyDown) otherWork();
+		//if (keyC.keyDown) otherWork();
 		if (frD > 1000.0 / (float)fps) {
 			if (keyP.keyTrigDown) menu = !menu;
 			if (!menu) {
@@ -259,7 +242,6 @@ int main()
 				if (keyS.keyTrigUp) ++currMenuPos;
 				currMenuPos = clip(currMenuPos, 0, menuLen - 1);
 			}
-			
 			//Drawer.clear();
 			clip(clPower, 0.0001f, 1.0f);
 			clip(brPower, 0.0001f, 1.0f);
@@ -279,37 +261,38 @@ int main()
 				Drawer.rebright(brPower);
 
 				if (G) while (it2 != galaxies.end())
-				{
-					float fancyBrightness = brightness * pow(zoom, 0.75);
+				{/*
 					Drawer.drCross(((it2->pos.x * Drawer.xMod - width / 2) + px) * zoom,
 						((it2->pos.y / 2 - height / 2) + py / 2) * zoom,
-						8, 0.7);
+						8, 0.7, 1);*/
 					Drawer.drArrow(((it2->pos.x * Drawer.xMod - width / 2) + px) * zoom,
-						((it2->pos.y / 2 - height / 2) + py / 2) * zoom, it2->vel * zoom * 2, 1);
+						((it2->pos.y / 2 - height / 2) + py / 2) * zoom, it2->vel * zoom * 2, 1, 1);
+					Drawer.drArrow(((it2->pos.x* Drawer.xMod - width / 2) + px)* zoom,
+						((it2->pos.y / 2 - height / 2) + py / 2)* zoom, it2->acc * zoom * 2, 1, 4);
 					++it2;
 				}
 				
 				Drawer.drString("BLUR", 10, 2, 1, 1);
-				Drawer.drNumber(clPower, 10, 16, 1, 1);
+				Drawer.drNumber(clPower, 10, 16, 1, 1, 4);
 				Drawer.drString("ZOOM", 10, 34, 1, 1);
-				Drawer.drNumber(zoom, 10, 48, 1, 1);
+				Drawer.drNumber(zoom, 10, 48, 1, 1, 4);
 				Drawer.drString("TIME SPEED", 10, 66, 1, 1);
-				Drawer.drNumber(speed * 10, 10, 80, 1, 1);
+				Drawer.drNumber(speed * 10, 10, 80, 1, 1, 4);
 				Drawer.drString("BRIGHTNESS", 10, 98, 1, 1);
-				Drawer.drNumber(brightness, 10, 112, 1, 1);
-				Drawer.drNumber(brightness, 10, 112, 1, 1);
+				Drawer.drNumber(brightness, 10, 112, 1, 1, 4);
+				Drawer.drNumber(brightness, 10, 112, 1, 1, 4);
 				Drawer.drString("TOTAL PARTICLE COUNT", 150, 2, 1, 1);
-				Drawer.drNumber(objects.size(), 300, 2, 1, 1);
+				Drawer.drNumber(objects.size(), 300, 2, 1, 1, 4);
 				Drawer.drString("FPS ", 150, 16, 1, 1);
-				Drawer.drNumber((float)(1000.0/(frD)), 180, 16, 1, 1);
+				Drawer.drNumber((float)(1000.0/(frD)), 180, 16, 1, 1, 4);
 				Drawer.drString("EVALUATED IN ONE FRAME", 280, 16, 1, 1);
-				Drawer.drNumber(frC, 450, 16, 1, 1);
+				Drawer.drNumber(frC, 450, 16, 1, 1, 4);
 				Drawer.drString("BRIGHTNESS POWER", 10, 130, 1, 1);
-				Drawer.drNumber(brPower, 10, 146, 1, 1);
+				Drawer.drNumber(brPower, 10, 146, 1, 1, 4);
 				Drawer.drString("X", 10, 170, 1, 1);
-				Drawer.drNumber(px, 40, 170, 1, 1);
+				Drawer.drNumber(px, 40, 170, 1, 1, 4);
 				Drawer.drString("Y", 10, 190, 1, 1);
-				Drawer.drNumber(py, 40, 190, 1, 1);
+				Drawer.drNumber(py, 40, 190, 1, 1, 4);
 			}
 			else {
 				Drawer.clear();
@@ -324,7 +307,11 @@ int main()
 			}
 			//Drawer.checkPaletteNum();
 			//Drawer.rebright(brPower);
-			Drawer.showNum(); 
+			
+			//std::cout << Drawer.showNum() << std::endl; 
+			Drawer.showNum();
+			//Drawer.threadShowNum();
+			std::string s = "";
 			frD = 0;
 			frC = 0;
 		}

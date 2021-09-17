@@ -4,6 +4,8 @@
 #include <Windows.h>
 #include <algorithm>
 #include <cmath>
+#include <chrono>
+#include <thread>
 #include "vec2.h"
 #include "NumbersASCII.h"
 #include "LettersASCII.h"
@@ -26,10 +28,16 @@ public:
 		this->h = h;
 		this->xMod = xMod;
 		this->screen = (wchar_t*)malloc(this->w * this->h * sizeof(wchar_t));
+		this->screen1 = (wchar_t*)malloc(this->w * this->h / 2 * sizeof(wchar_t));
+		this->screen2 = (wchar_t*)malloc(this->w * this->h / 2 * sizeof(wchar_t));
 		this->screenNum = (float*)malloc(this->w * this->h * sizeof(float));
 		this->zBuff = (float*)malloc(this->w * this->h * sizeof(float));
-		this->hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
-		SetConsoleActiveScreenBuffer(hConsole);
+		this->hConsole = GetStdHandle(STD_OUTPUT_HANDLE); 
+		//CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
+		SetConsoleActiveScreenBuffer(hConsole); //{ (SHORT)150, (SHORT)30 }
+		//CONSOLE_SCREEN_BUFFER_INFOEX consolesize;
+		//GetConsoleScreenBufferInfoEx(hConsole, &consolesize);
+		//SetConsoleScreenBufferInfoEx(hConsole, &consolesize);
 		this->dwBytesWritten = 0;
 		clear();
 	}
@@ -65,19 +73,22 @@ public:
 	}
 
 	int convertCoords(const int& x, const int& y) {   // origin is in the top-left corner
-		return y * this->w + x;
+		return clip(y * this->w + x, 0, this->w * this->h - 1);
 	}
 
 	int convertCoordsGL(const float& x, const float& y) { // origin is in the center
 		return (round(y) + this->h / 2 - 1) * this->w + x + this->w / 2 - 1;
 	}
 
-	void drNumber(const float& num, const int& px, const int& py, const float& size, const float& color) {
+	void drNumber(const float& num, const int& px, const int& py, const float& size, const float& color, const int& len = 0) {
 		std::string numS = std::to_string(num);
 		int ind = 0;
+		int pPos = 0;
 		for (int i = 0; i < numS.size(); ++i) {
 			int oneN = (int)numS[i] - 48;
+			if (pPos > len)  return;
 			if (numS[i] == '.') {
+				pPos += 1;
 				oneN = 10;
 				for (int x = 0; x < 6 * size; ++x) {
 					for (int y = 0; y < 5 * size; ++y) {
@@ -97,11 +108,17 @@ public:
 				++ind;
 				continue;
 			}
+			if (numS[i] == 'n') {
+				drString("NAN", px + 7 * size * ind, py, size, color);
+				return;
+			}
 			for (int x = 0; x < 6 * size; ++x) {
 				for (int y = 0; y < 5 * size; ++y) {
-					if (numbers[oneN][(int)(y / size) * 6 + (int)(x / size)] != ' ') screenNum[convertCoords(x + px + ind * 7 * size, y + py)] = color;
+					if (numbers[oneN][(int)(y / size) * 6 + (int)(x / size)] != ' ') 
+						screenNum[convertCoords(x + px + ind * 7 * size, y + py)] = color;
 				}
 			}
+			pPos = pPos > 0 ? ++pPos : 0;
 			++ind;
 		}
 	}
@@ -191,23 +208,23 @@ public:
 		}
 	}
 
-	void drCross(const float& px, const float& py, const float& size, const float& color) {
-		drLineOpaqueNum(px - size * xMod, py - size/2.0, px + size * xMod, py + size/2.0, color, 1);
-		drLineOpaqueNum(px - size * xMod, py + size/2.0, px + size * xMod, py - size/2.0, color, 1);
+	void drCross(const float& px, const float& py, const float& size, const float& color, const int& style) {
+		drLineOpaqueNum(px * xMod - size * xMod, py - size/2.0, px * xMod + size * xMod, py + size/2.0, color, style);
+		drLineOpaqueNum(px * xMod - size * xMod, py + size/2.0, px * xMod + size * xMod, py - size/2.0, color, style);
 	}
 
-	void drArrow(const float& px, const float& py, vec2 dir, const float& color) {
-		drLineOpaqueNum(px, py, px + dir.x * 0.7, py + dir.y / 2.0, color, 2);
+	void drArrow(const float& px, const float& py, vec2 dir, const float& color, const int& style) {
 		vec2 dc = -dir;
+		//dc.x = dc.x * xMod;
 		dc.normalize();
-		float ax = px + dir.x * 0.7;
+		float ax = px + dir.x * xMod;
 		float ay = py + dir.y / 2.0;
-		float ang1 = 5 * M_PI / 6;
-		float ang2 = 1 * M_PI / 6;
-		dc = dc * 5;
-		float angX = dc.getAngToX();
-		drLineOpaqueNum(ax, ay, ax - cos(ang1 - angX) * dc.magnitude(), ay - sin(ang1 - angX) * dc.magnitude(), color, 1);
-		drLineOpaqueNum(ax, ay, ax + cos(ang2 - angX) * dc.magnitude(), ay + sin(ang2 - angX) * dc.magnitude(), color, 1);
+		float ang = M_PI / 8;
+		vec2 d1 = dc.rotate( ang) * 10;
+		vec2 d2 = dc.rotate(-ang) * 10;
+		drLineOpaqueNum(px, py, ax, ay, color, style);
+		drLineOpaqueNum(ax, ay, ax + d1.x, ay + d1.y / 2, color, 1);
+		drLineOpaqueNum(ax, ay, ax + d2.x, ay + d2.y / 2, color, 1);
 	}
 
 	void drCircle(int px, int py, int rad, float color, float depth, float fill) {
@@ -272,11 +289,46 @@ public:
 		//return (int)clip(((color_scheme.size() - 1) * (double)col), 0.0, (double)color_scheme.size() - 1);
 	}
 
-	void showNum() {
+	void threadShow1() {
+		WriteConsoleOutputCharacter(hConsole, screen1, this->w * this->h / 2, { 0,0 }, &dwBytesWritten);
+	}
+	void threadShow2() {
+		WriteConsoleOutputCharacter(hConsole, screen2, this->w * this->h / 2, { 0, (SHORT)(this->h / 2) }, &dwBytesWritten);
+	}
+	std::thread THREADthreadShow1() {
+		return std::thread([=] { threadShow1(); });
+	}
+	std::thread THREADthreadShow2() {
+		return std::thread([=] { threadShow2(); });
+	}
+
+	int threadShowNum() {
+		typedef std::chrono::high_resolution_clock Clock;
+		auto start = Clock::now();
+		for (int i = 0; i < this->w * this->h/2; ++i) {
+			screen1[i] = color_scheme[std::max(getColor(screenNum[i]), 0)];
+		}
+		for (int i = this->w * this->h / 2, j = 0; i < this->w * this->h - 2; ++i) {
+			screen2[j] = color_scheme[std::max(getColor(screenNum[i]), 0)];
+			++j;
+		}
+		std::thread thr1 = THREADthreadShow1();
+		std::thread thr2 = THREADthreadShow2();
+		thr1.join();
+		thr2.join();
+		auto end = Clock::now();
+		return std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+	}
+
+	int showNum() {
+		typedef std::chrono::high_resolution_clock Clock;
+		auto start = Clock::now();
 		for (int i = 0; i < this->w * this->h; ++i) { 
 			screen[i] = color_scheme[std::max(getColor(screenNum[i]), 0)];
 		}
 		WriteConsoleOutputCharacter(hConsole, screen, this->w * this->h, { 0,0 }, &dwBytesWritten);
+		auto end = Clock::now();
+		return std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 	}
 
 	void rebright(float a) {
@@ -314,7 +366,7 @@ private:
    //=================================//
 	//std::string color_scheme = " .,:-~=<+xvzXY#&8%B@$";
 	//std::string color_scheme = ".=#*+%";  // --- good for 3pt
-	std::string color_scheme = ".`*xG=&";  // --- good for 1pt
+	std::string color_scheme = " `*xhG=&";  // --- good for 1pt
 	//std::string color_scheme = " `.;!=*&#W";  // -- good for 2pt
 	//std::string color_scheme = ".,:irs?9B&#@$";
 	//std::string color_scheme = " .,ilwW";  // --- good for 3pt
@@ -322,7 +374,7 @@ private:
 	//std::string color_scheme = "'.\'^,:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
 	//std::string color_scheme = ".,:irs?9B&@";  
 	//std::string color_scheme = "`'\":?s}#%W@"; // --- best palette for 5pt 
-	wchar_t* screen;
+	wchar_t *screen, *screen1, *screen2;
 	float* screenNum;
 	float* zBuff;
 	DWORD dwBytesWritten = 0;
