@@ -10,7 +10,7 @@ std::vector<std::vector <float>> testSmiley = {
 	{0.0, 1.0, 1.0, 1.0, 0.0}
 };
 
-std::vector<std::vector <float>> menuPos = {
+std::vector<std::vector <float>> SPRITE_menuPos = {
 	{0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0},
 	{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0},
 	{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0},
@@ -20,7 +20,7 @@ std::vector<std::vector <float>> menuPos = {
 	{0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0}
 };
 
-std::vector<std::vector <float>> menuPosSel = {
+std::vector<std::vector <float>> SPRITE_menuPosSel = {
 	{0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0},
 	{1.0, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 1.0},
 	{1.0, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 1.0},

@@ -63,6 +63,7 @@ keyState key8('8');
 keyState key9('9');
 keyState key0('0');
 keyState keySpace(' ');
+keyState keyEscape(27);
 
 void processAll() {
 	keyA.keyProcess();
@@ -102,4 +103,5 @@ void processAll() {
 	key9.keyProcess();
 	key0.keyProcess();
 	keySpace.keyProcess();
+	keyEscape.keyProcess();
 }
